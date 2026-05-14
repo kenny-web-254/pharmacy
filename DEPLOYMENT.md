@@ -1,10 +1,8 @@
-# PharmacyOS Deployment Guide
+# Immediate Deployment Guide: Railway (Production Ready)
 
-## Overview
+**Goal**: Deploy PharmacyOS to Railway with M-Pesa credentials ready for later configuration.
 
-This guide covers deploying PharmacyOS to production environments. The application consists of:
-1. **Frontend**: React + Vite PWA (deployed on Vercel, Netlify, Railway, or self-hosted)
-2. **Backend**: Express proxy server (deployed on Railway, Render, or self-hosted)
+**Note**: The app uses **IndexedDB** (client-side storage). No MongoDB server required.
 
 ---
 
@@ -14,88 +12,167 @@ This guide covers deploying PharmacyOS to production environments. The applicati
 - [ ] Get M-Pesa Daraja API credentials (sandbox first, then production)
 - [ ] Generate production-grade icons (convert SVGs to PNGs)
 - [ ] Set up error tracking (optional: Sentry, LogRocket)
-- [ ] Configure backup strategy
 - [ ] Plan downtime if migrating from existing POS
 - [ ] Train staff on new system
+- [ ] Ensure `.env` file exists in `proxy-server/` (see Section 2.1)
 
 ---
 
-## Option 1: Deploy to Railway (Recommended - Simplest)
+## Option 1: Deploy to Railway (Recommended)
 
-Railway handles both frontend and backend in one platform with automatic HTTPS, environment variables, and easy scaling.
+Railway handles both frontend and backend with automatic HTTPS, environment variables, and zero-config deployment.
 
-### Frontend Deployment
+### Architecture Overview
 
-1. **Push code to GitHub**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/kenny-web-254/pharmacy.git
-   git push -u origin main
-   ```
+```
+┌─────────────────────────────────────┐
+│   Railway Project (pharmacy)        │
+│  ┌──────────────────────────────┐  │
+│  │ Frontend Service (root)      │  │ → https://pharmacy.up.railway.app
+│  │ - Build: npm run build       │  │
+│  │ - Static files from /dist    │  │
+│  └──────────────────────────────┘  │
+│  ┌──────────────────────────────┐  │
+│  │ Backend Service (proxy-server)│  │ → https://pharmacy-proxy.up.railway.app
+│  │ - Start: npm start           │  │
+│  │ - Port: 3001                 │  │
+│  └──────────────────────────────┘  │
+└─────────────────────────────────────┘
+```
 
-2. **Create Railway project**
-   - Go to [railway.app](https://railway.app)
-   - Click "New Project" → "Deploy from GitHub"
-   - Select **kenny-web-254/pharmacy** repository
-   - Choose root directory (leave blank)
+### Step 1: Push Code to GitHub
 
-3. **Configure build settings**
-   - Build command: `npm run build`
-   - Start command: `npm run preview` (for testing) or let Railway autodetect
-   - Environment: Node.js
+```bash
+cd C:\Users\kenro\Documents\surecreate\pharmacyos
 
-4. **Add environment variables**
-   In Railway dashboard → Variables:
-   ```
-   VITE_PROXY_URL=https://pharmacy-proxy.up.railway.app
-   ```
+# Initialize git (if not already)
+git init
 
-5. **Deploy**
-   - Railway automatically deploys from main branch
-   - Frontend available at: `https://pharmacy.up.railway.app`
+# Stage all files
+git add .
 
-### Backend Deployment
+# Commit
+git commit -m "Initial commit: PharmacyOS"
 
-1. **Create new Railway service**
-   - New Project → Deploy from GitHub
-   - Select same repository
-   - Root directory: `proxy-server`
+# Add remote repository
+git remote add origin https://github.com/kenny-web-254/pharmacy.git
 
-2. **Configure**
-   - Build command: `npm install`
-   - Start command: `npm start`
-   - Port: 3001
+# Set branch to main
+git branch -M main
 
-3. **Add environment variables**
-   ```
-   MPESA_CONSUMER_KEY=2sxZ8KBSLWveE96JlqB7mtttfHdvktTZ7u2F3KANs7egjvAe
-   MPESA_CONSUMER_SECRET=ZaJFsttXvJ2znXpwLgDxMmpVBH1MaSGP2m6jQPdGR21Pt18DbPwv4syKSGbrVe6G
-   MPESA_SHORTCODE=N/A
-   MPESA_PASSKEY=N/A
-   MPESA_CALLBACK_URL=https://pharmacy-proxy.up.railway.app/api/mpesa/callback
-   MPESA_ENVIRONMENT=sandbox
-   ALLOWED_ORIGINS=https://pharmacy.up.railway.app,http://localhost:5173
-   MONGODB_URI=mongodb+srv://kennyutugi_db_user:pharmacy@pharmacy.qbnqpzn.mongodb.net/?appName=pharmacy
-   ```
-   
-   **⚠️ Note**: You need to get your **Shortcode** and **Passkey** from M-Pesa Daraja Dashboard:
-   1. Go to [developer.safaricom.co.ke](https://developer.safaricom.co.ke)
-   2. Login to your M-Pesa account
-   3. Navigate to "Applications" → Select your app
-   4. Copy **Shortcode** from app details
-   5. Copy **Passkey** from "Security Credentials"
-   6. Update these values in Railway dashboard once you have them
+# Push to GitHub
+git push -u origin main
+```
 
-4. **Deploy**
-   - Backend available at: `https://pharmacy-proxy.up.railway.app`
+### Step 2: Deploy Frontend
 
-5. **Test**
-   ```bash
-   curl https://pharmacy-proxy.up.railway.app/health
-   # Should return: {"status":"OK","timestamp":"2024-..."}
-   ```
+1. Go to [railway.app](https://railway.app) → **"New Project"**
+2. Select **"Deploy from GitHub repo"**
+3. Choose repository: **`kenny-web-254/pharmacy`**
+4. Root directory: **Leave blank** (deploys from repository root)
+5. Railway auto-detects:
+   - **Framework**: Vite
+   - **Build command**: `npm run build`
+   - **Dev command**: `npm run dev`
+   - **Start command**: `npm run preview`
+
+6. Click **"Deploy"** and wait for build to complete
+
+7. After deployment, copy the generated URL (e.g., `https://pharmacy.up.railway.app`)
+
+### Step 3: Configure Frontend Environment Variables
+
+In Railway Dashboard → **Frontend Service** → **Variables**:
+
+```
+VITE_PROXY_URL=https://pharmacy-proxy.up.railway.app
+```
+
+**Trigger redeploy**: Railway auto-redeploys when variables change.
+
+---
+
+## Deploy Backend (M-Pesa Proxy)
+
+### Step 1: Create Backend Service
+
+1. In your Railway project, click **"+ New"** → **"Service"**
+2. Select **"Deploy from GitHub repo"**
+3. Choose repository: **`kenny-web-254/pharmacy`**
+4. **Root directory**: `proxy-server`
+5. Railway auto-detects:
+   - **Framework**: Node.js
+   - **Build command**: `npm install`
+   - **Start command**: `npm start`
+   - **Port**: 3001 (from `server.js`)
+
+6. Click **"Deploy"**
+
+### Step 2: Backend Environment Variables
+
+In Railway Dashboard → **Backend Service** → **Variables**, add:
+
+| Variable | Value | Required |
+|----------|-------|----------|
+| `MPESA_CONSUMER_KEY` | `2sxZ8KBSLWveE96JlqB7mtttfHdvktTZ7u2F3KANs7egjvAe` | Yes |
+| `MPESA_CONSUMER_SECRET` | `ZaJFsttXvJ2znXpwLgDxMmpVBH1MaSGP2m6jQPdGR21Pt18DbPwv4syKSGbrVe6G` | Yes |
+| `MPESA_PASSKEY` | `[YOUR_PASSKEY_FROM_DARAJA]` | **Yes** - See Section 3.4 |
+| `MPESA_SHORTCODE` | `[YOUR_SHORTCODE_FROM_DARAJA]` | **Yes** - See Section 3.4 |
+| `MPESA_CALLBACK_URL` | `https://pharmacy-proxy.up.railway.app/api/mpesa/callback` | Yes |
+| `MPESA_ENVIRONMENT` | `sandbox` | Yes (change to `production` later) |
+| `PORT` | `3001` | Auto-set by Railway |
+| `ALLOWED_ORIGINS` | `https://pharmacy.up.railway.app,http://localhost:5173` | Yes |
+
+**⚠️ Important**: 
+- Replace `pharmacy-proxy.up.railway.app` with your actual backend domain
+- Replace `pharmacy.up.railway.app` with your actual frontend domain
+- **Obtain `MPESA_PASSKEY` and `MPESA_SHORTCODE`** from M-Pesa Daraja Dashboard (Section 3.4)
+
+### Step 3: Verify Deployment
+
+After Railway finishes deploying:
+
+1. **Copy your service URLs**:
+   - Frontend: Click on your frontend service → "Settings" → Copy domain
+   - Backend: Click on your backend service → "Settings" → Copy domain
+
+2. **Update environment variables** with actual URLs:
+   - Frontend `VITE_PROXY_URL` → your backend URL
+   - Backend `MPESA_CALLBACK_URL` → your backend URL + `/api/mpesa/callback`
+   - Backend `ALLOWED_ORIGINS` → your frontend URL
+
+3. **Trigger redeploy** by pushing a minor change or manually redeploying
+
+---
+
+### Step 4: Obtain M-Pesa Passkey & Shortcode
+
+The provided `MPESA_CONSUMER_KEY` and `MPESA_CONSUMER_SECRET` are complete. However, two additional **required** fields must be obtained from the M-Pesa Daraja Dashboard:
+
+#### Getting MPESA_SHORTCODE
+
+1. Go to [developer.safaricom.co.ke](https://developer.safaricom.co.ke)
+2. Login to your Safaricom Developer account
+3. Navigate: **Applications** → **My Apps**
+4. Select your application
+5. Copy the **"Shortcode"** (e.g., `174379` is the standard sandbox shortcode)
+
+#### Getting MPESA_PASSKEY
+
+1. In your app details page on Daraja Dashboard
+2. Navigate to **"Security Credentials"** or **"API Settings"**
+3. Locate the **"Passkey"** field (sometimes called "Public Key" or "Certificate Passphrase")
+4. If missing, click **"Generate New Passkey"** and copy it immediately
+
+#### Update Railway Variables
+
+In Railway Dashboard → Backend Service → Variables:
+```
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=your_actual_passkey_here
+```
+
+Railway auto-redeploys when variables change.
 
 ---
 
@@ -110,23 +187,23 @@ Vercel is optimized for React/Next.js frontends, Railway for backends.
 2. **Import to Vercel**
    - Go to [vercel.com](https://vercel.com)
    - Click "Add New..." → "Project"
-   - Select your GitHub repository
-   - Import settings:
-     - Framework: `Vite`
-     - Root directory: `./`
-     - Build command: `npm run build`
-     - Output directory: `dist`
+    - Select your GitHub repository
+    - Import settings:
+      - Framework: `Vite`
+      - Root directory: `./`
+      - Build command: `npm run build`
+      - Output directory: `dist`
 
-3. **Environment variables**
-   - Go to Settings → Environment Variables
-   - Add:
-     ```
-     VITE_PROXY_URL=https://pharmacyos-proxy.up.railway.app
-     ```
+ 3. **Environment variables**
+    - Go to Settings → Environment Variables
+    - Add:
+      ```
+      VITE_PROXY_URL=https://pharmacy-proxy.up.railway.app
+      ```
 
-4. **Deploy**
-   - Vercel automatically deploys on git push
-   - Available at: `https://pharmacyos.vercel.app` (custom domain optional)
+ 4. **Deploy**
+    - Vercel automatically deploys on git push
+    - Available at: `https://pharmacy.vercel.app` (or your custom domain)
 
 ### Backend (Railway)
 
@@ -473,29 +550,26 @@ curl -X POST https://pharmacy.yourdomain.com/api/mpesa/stkpush \
 ## Quick Deploy Commands
 
 ```bash
-# Local development
+# Local development (frontend)
 npm run dev
 
-# Build for production
+# Build frontend for production
 npm run build
 
-# Deploy frontend (Vercel)
-vercel
+# Test backend locally
+cd proxy-server
+npm start
 
-# Deploy backend (Railway)
+# Push to GitHub
+git add .
+git commit -m "Deploy to Railway"
+git push
+
+# Railway CLI (optional)
+npm i -g @railway/cli
+railway login
+railway link
 railway up
-
-# SSH to VPS
-ssh root@your_ip
-
-# Check backend status
-systemctl status pharmacyos-proxy
-
-# View backend logs
-journalctl -u pharmacyos-proxy -f
-
-# Restart backend
-systemctl restart pharmacyos-proxy
 ```
 
 ---
