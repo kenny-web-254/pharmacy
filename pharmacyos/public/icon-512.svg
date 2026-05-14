@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0f766e"/>
+  <g transform="translate(128, 128) scale(4)">
+    <!-- Pill/Capsule -->
+    <ellipse cx="32" cy="24" rx="12" ry="16" fill="#ffffff"/>
+    <rect x="20" y="24" width="24" height="32" fill="#ffffff"/>
+    <ellipse cx="32" cy="56" rx="12" ry="16" fill="#ffffff"/>
+    <!-- Cross -->
+    <rect x="28" y="16" width="8" height="48" fill="#10b981"/>
+    <rect x="16" y="36" width="32" height="8" fill="#10b981"/>
+  </g>
+</svg>
