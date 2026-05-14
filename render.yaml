@@ -1,0 +1,27 @@
+# Render Deployment Configuration
+
+services:
+  - type: web
+    name: pharmacy-api
+    env: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: proxy-server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: https://pharmacy.onrender.com,http://localhost:5173
+
+  - type: static
+    name: pharmacy
+    branch: main
+    rootDir: .
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_PROXY_URL
+        value: https://pharmacy-api.onrender.com

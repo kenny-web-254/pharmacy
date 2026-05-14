@@ -1,11 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import dotenv from 'dotenv'
 import rateLimit from 'express-rate-limit'
-import mpesaRoutes from './routes/mpesa.js'
-
-dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -13,7 +9,7 @@ const PORT = process.env.PORT || 3001
 // Security middleware
 app.use(helmet())
 
-// CORS configuration
+// CORS configuration - configure allowed origins in environment
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
 app.use(cors({
   origin: allowedOrigins,
@@ -33,12 +29,19 @@ const limiter = rateLimit({
 
 app.use(limiter)
 
-// Routes
-app.use('/api/mpesa', mpesaRoutes)
-
-// Health check
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() })
+})
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: 'PharmacyOS Proxy Server',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: ['/health'],
+  })
 })
 
 // Error handling middleware
@@ -56,7 +59,6 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`PharmacyOS Proxy Server running on http://localhost:${PORT}`)
-  console.log(`Environment: ${process.env.MPESA_ENVIRONMENT || 'sandbox'}`)
 })
 
 export default app
